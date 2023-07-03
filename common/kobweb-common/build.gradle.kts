@@ -11,7 +11,7 @@ version = libs.versions.kobweb.libs.get()
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation(libs.kaml)
+    implementation(libs.kotlinx.serialization.core.jvm)
     implementation(libs.kotlinx.coroutines)
 
     testImplementation(kotlin("test"))

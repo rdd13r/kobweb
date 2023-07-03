@@ -8,6 +8,7 @@ pluginManagement {
 rootProject.name = "kobweb"
 
 include(":common:kobweb-common")
+include(":common:kobweb-common-yaml")
 include(":frontend:kobweb-core")
 include(":frontend:kobweb-compose")
 include(":frontend:kobweb-silk")

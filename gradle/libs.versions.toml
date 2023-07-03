@@ -9,7 +9,7 @@ kotlin = "1.8.20"
 kotlinpoet = "1.12.0"
 kotlinx-coroutines = "1.6.0"
 kotlinx-html = "0.7.3"
-kotlinx-serialization-json = "1.4.1"
+kotlinx-serialization = "1.4.1"
 ksp = "1.5.30-1.0.0"
 ktor = "2.3.0"
 logback = "1.2.3"
@@ -28,7 +28,8 @@ kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx-html" }
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
+kotlinx-serialization-core-jvm = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 ksp = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }

@@ -13,11 +13,11 @@ version = libs.versions.kobweb.libs.get()
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(libs.bundles.ktor)
-    implementation(libs.kaml)
 
     implementation(project(":backend:kobweb-api"))
     implementation(project(":backend:server-plugin"))
     implementation(project(":common:kobweb-common"))
+    implementation(project(":common:kobweb-common-yaml"))
 
     testImplementation(libs.truthish)
     testImplementation(libs.ktor.server.tests)
