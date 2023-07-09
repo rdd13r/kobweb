@@ -2,6 +2,9 @@ package playground.pages
 
 import androidx.compose.runtime.*
 import com.varabyte.kobweb.core.Page
+import com.varabyte.kobweb.silk.components.forms.Button
+import com.varabyte.kobweb.streams.KobwebStream
+import com.varabyte.kobweb.streams.StreamEvent
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.dom.Input
 import org.jetbrains.compose.web.dom.P
@@ -11,16 +14,25 @@ import playground.components.layouts.PageLayout
 @Page
 @Composable
 fun HomePage() {
-    PageLayout("Welcome to Kobweb!") {
-        Text("Please enter your name")
-        var name by remember { mutableStateOf("") }
-        Input(
-            InputType.Text,
-            attrs = {
-                onInput { e -> name = e.value }
+PageLayout("Stream Test") {
+    val stream = remember { KobwebStream("echo") }
+    LaunchedEffect(Unit) {
+        stream.connect { evt ->
+            when (evt) {
+                is StreamEvent.Opened -> send("Hello from the client!")
+                is StreamEvent.Text -> println("Got text from server: \"${evt.text}\"")
+                is StreamEvent.Closed -> println("Stream closed")
             }
-        )
-        P()
-        Text("Hello ${name.takeIf { it.isNotBlank() } ?: "World"}!")
+        }
     }
+
+    var text by remember { mutableStateOf("") }
+    Input(
+        InputType.Text,
+        attrs = { onInput { e -> text = e.value } }
+    )
+    Button(onClick = { stream.send(text) }) {
+        Text("Send")
+    }
+}
 }

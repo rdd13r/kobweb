@@ -22,6 +22,7 @@ kotlin {
             dependencies {
                 implementation(compose.runtime)
                 implementation(compose.html.core)
+                implementation(project(":frontend:kobweb-streams"))
                 api(project(":frontend:compose-html-ext"))
             }
         }
