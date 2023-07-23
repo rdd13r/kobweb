@@ -15,6 +15,7 @@ dependencies {
     // Get access to Kotlin multiplatform source sets
     implementation(kotlin("gradle-plugin"))
 
+    implementation(libs.kotlinx.coroutines)
     implementation(libs.kotlinx.serialization.json)
 
     // Common Gradle plugin used by Library and Application plugins

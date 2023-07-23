@@ -21,6 +21,11 @@ import com.varabyte.kobweb.gradle.core.util.searchZipFor
 import com.varabyte.kobweb.project.conf.KobwebConf
 import com.varabyte.kobweb.server.api.ServerStateFile
 import com.varabyte.kobweb.server.api.SiteLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.InputFile
@@ -30,6 +35,7 @@ import org.gradle.api.tasks.TaskAction
 import org.jsoup.Jsoup
 import java.io.File
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
 import kotlin.system.measureTimeMillis
 import com.varabyte.kobweb.gradle.application.Browser as KobwebBrowser
 
@@ -112,6 +118,8 @@ abstract class KobwebExportTask @Inject constructor(
 
     @TaskAction
     fun execute() {
+        val startTime = System.currentTimeMillis()
+
         // Sever should be running since "kobwebStart" is a prerequisite for this task
         val port = ServerStateFile(kobwebApplication.kobwebFolder).content!!.port
 
@@ -144,53 +152,57 @@ abstract class KobwebExportTask @Inject constructor(
         frontendData.pages.takeIf { it.isNotEmpty() }?.let { pages ->
             val browser = kobwebBlock.export.browser.get()
             PlaywrightCache().install(browser)
-            Playwright.create(
-                Playwright.CreateOptions().setEnv(
-                    mapOf(
-                        // Should have been downloaded above, by PlaywrightCache()
-                        "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD" to "1"
-                    )
-                )
-            ).use { playwright ->
-                val browserType = when (browser) {
-                    KobwebBrowser.Chromium -> playwright.chromium()
-                    KobwebBrowser.Firefox -> playwright.firefox()
-                    KobwebBrowser.WebKit -> playwright.webkit()
-                }
-                browserType.launch().use { browser ->
-                    val routePrefix = RoutePrefix(kobwebConf.site.routePrefix)
-                    pages
-                        .map { it.route }
-                        // Skip export routes with dynamic parts, as they are dynamically generated based on their URL
-                        // anyway
-                        .filter { !it.contains('{') }
-                        .toSet()
-                        .forEach { route ->
-                            logger.lifecycle("\nSnapshotting html for \"$route\"...")
-
-                            val prefixedRoute = routePrefix.prependTo(route)
-
-                            val snapshot: String
-                            val elapsedMs = measureTimeMillis {
-                                snapshot = browser.takeSnapshot("http://localhost:$port$prefixedRoute")
+            val routePrefix = RoutePrefix(kobwebConf.site.routePrefix)
+            val jobs = pages
+                .map { it.route }
+                // Skip export routes with dynamic parts, as they are dynamically generated based on their URL
+                // anyway
+                .filter { !it.contains('{') }
+                .toSet()
+                .map { route ->
+                    CoroutineScope(Dispatchers.Default).launch {
+                        Playwright.create(
+                            Playwright.CreateOptions().setEnv(
+                                mapOf(
+                                    // Should have been downloaded above, by PlaywrightCache()
+                                    "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD" to "1"
+                                )
+                            )
+                        ).use { playwright ->
+                            val browserType = when (browser) {
+                                KobwebBrowser.Chromium -> playwright.chromium()
+                                KobwebBrowser.Firefox -> playwright.firefox()
+                                KobwebBrowser.WebKit -> playwright.webkit()
                             }
-                            logger.lifecycle("Snapshot finished in ${elapsedMs}ms.")
+                            browserType.launch().use { browser ->
+                                logger.lifecycle("\nSnapshotting html for \"$route\"...")
 
-                            var filePath = route.substringBeforeLast('/') + "/" +
-                                (route.substringAfterLast('/').takeIf { it.isNotEmpty() } ?: "index") +
-                                ".html"
+                                val prefixedRoute = routePrefix.prependTo(route)
 
-                            // Drop the leading slash so we don't confuse File resolve logic
-                            filePath = filePath.drop(1)
-                            pagesRoot
-                                .resolve(filePath)
-                                .run {
-                                    parentFile.mkdirs()
-                                    writeText(snapshot)
+                                val snapshot: String
+                                val elapsedMs = measureTimeMillis {
+                                    snapshot = browser.takeSnapshot("http://localhost:$port$prefixedRoute")
                                 }
+                                logger.lifecycle("Snapshot finished in ${elapsedMs}ms.")
+
+                                var filePath = route.substringBeforeLast('/') + "/" +
+                                    (route.substringAfterLast('/').takeIf { it.isNotEmpty() } ?: "index") +
+                                    ".html"
+
+                                // Drop the leading slash so we don't confuse File resolve logic
+                                filePath = filePath.drop(1)
+                                pagesRoot
+                                    .resolve(filePath)
+                                    .run {
+                                        parentFile.mkdirs()
+                                        writeText(snapshot)
+                                    }
+                            }
                         }
+                    }
                 }
-            }
+
+            runBlocking { jobs.joinAll() }
         }
 
         // Copy resources.
@@ -233,5 +245,8 @@ abstract class KobwebExportTask @Inject constructor(
                 }
             }
         }
+
+        val elapsedMs = System.currentTimeMillis() - startTime
+        logger.lifecycle("\nFull export took ${elapsedMs / 1000.0}s.")
     }
 }
